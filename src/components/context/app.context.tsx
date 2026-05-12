@@ -1,10 +1,12 @@
-import { createContext, useContext, useState } from "react";
+import { fetchAccountApi } from "@/services/api";
+import { createContext, useContext, useEffect, useState } from "react";
+import PuffLoader from "react-spinners/PuffLoader";
 
 
 interface IAppContext {
     isAuthenticated: boolean,
     setIsAuthenticated: (v: boolean) => void
-    setUser: (v: IUser) => void
+    setUser: (v: IUser | null) => void
     user: IUser | null
     isAppLoading: boolean
     setIsAppLoading: (v: boolean) => void
@@ -21,13 +23,35 @@ export const AppProvider = (props: IProps) => {
     const [user, setUser] = useState<IUser | null>(null);
     const [isAppLoading, setIsAppLoading] = useState<boolean>(true);
 
+    useEffect(() => {
+        const fetchAccount = async () => {
+            const res = await fetchAccountApi();
+            if (res.data) {
+                setUser(res.data.user);
+                setIsAuthenticated(true);
+            }
+            setIsAppLoading(false)
+        }
+
+        fetchAccount();
+    }, [])
 
     return (
-        <CurrentAppContext.Provider value={{
-            isAuthenticated, setIsAuthenticated, user, setUser, isAppLoading, setIsAppLoading
-        }}>
-            {props.children}
-        </CurrentAppContext.Provider>
+        <>
+            {!isAppLoading ?
+                <CurrentAppContext.Provider value={{
+                    isAuthenticated, setIsAuthenticated, user, setUser, isAppLoading, setIsAppLoading
+                }}>
+                    {props.children}
+                </CurrentAppContext.Provider>
+                :
+                <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+                    <PuffLoader
+                        color="#00faff"
+                    />
+                </div>
+            }
+        </>
     );
 };
 

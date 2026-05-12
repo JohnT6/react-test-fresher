@@ -24,3 +24,12 @@ export const fetchAccountApi = () => {
     })
 }
 
+export const logOutAPI = () => {
+    const URLBackend = "/api/v1/auth/logout"
+    return axios.post<IBackendRes<IRegister>>(URLBackend)
+}
+
+export const getUserWithPaginateApi = (query: string) => {
+    const URLBackend = `/api/v1/user?${query}`
+    return axios.get<IBackendRes<IModelPaginate<IUserTable>>>(URLBackend)
+}
