@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { getUserWithPaginateApi } from '@/services/api';
 import { dateRangeValidate } from '@/services/helper';
 import ViewDetailUser from './view.detail.user';
+import CreateUserModal from './create.user';
 
 
 
@@ -28,6 +29,9 @@ const TableUser = () => {
 
     const [isViewDetail, setIsDetailView] = useState<boolean>(false);
     const [isDataDetail, setDataDetail] = useState<IUserTable | null>(null);
+
+    const [openCreateModal, setOpenCreateModal] = useState<boolean>(false);
+
 
 
     const columns: ProColumns<IUserTable>[] = [
@@ -70,6 +74,7 @@ const TableUser = () => {
             title: 'Created At',
             dataIndex: 'createdAtRange',
             valueType: "dateRange",
+            defaultSortOrder: 'descend',
             hideInTable: true
         },
         {
@@ -113,6 +118,8 @@ const TableUser = () => {
 
                         if (sort && sort.createdAt) {
                             query += `&sort=${sort.createdAt === "ascend" ? "createdAt" : "-createdAt"}`
+                        } else {
+                            query += "&sort=-createdAt"
                         }
 
                         const createdDateRange = dateRangeValidate(params.createdAtRange);
@@ -129,7 +136,7 @@ const TableUser = () => {
                         data: res.data?.result,
                         page: 1,
                         success: true,
-                        total: res.data?.meta.total
+                        total: res.data?.meta?.total
                     }
 
                 }}
@@ -149,6 +156,7 @@ const TableUser = () => {
                         icon={<PlusOutlined />}
                         onClick={() => {
                             actionRef.current?.reload();
+                            setOpenCreateModal(true)
                         }}
                         type="primary"
                     >
@@ -162,6 +170,11 @@ const TableUser = () => {
                 setIsDetailView={setIsDetailView}
                 isDataDetail={isDataDetail}
                 setDataDetail={setDataDetail}
+            />
+            <CreateUserModal
+                openCreateModal={openCreateModal}
+                setOpenCreateModal={setOpenCreateModal}
+                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
             />
         </>
     );

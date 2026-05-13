@@ -33,3 +33,8 @@ export const getUserWithPaginateApi = (query: string) => {
     const URLBackend = `/api/v1/user?${query}`
     return axios.get<IBackendRes<IModelPaginate<IUserTable>>>(URLBackend)
 }
+
+export const createUserAPI = (fullName: string, password: string, email: string, phone: string) => {
+    const URLBackend = "/api/v1/user"
+    return axios.post<IBackendRes<IUserTable>>(URLBackend, { fullName, password, email, phone })
+}
