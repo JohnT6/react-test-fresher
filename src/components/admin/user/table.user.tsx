@@ -1,12 +1,15 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloudUploadOutlined, DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { Button } from 'antd';
+import { App, Button, Popconfirm } from 'antd';
 import { useRef, useState } from 'react';
-import { getUserWithPaginateApi } from '@/services/api';
+import { deleteUserAPI, getUserWithPaginateApi } from '@/services/api';
 import { dateRangeValidate } from '@/services/helper';
 import ViewDetailUser from './view.detail.user';
 import CreateUserModal from './create.user';
+import ImportFileModal from './import.modal';
+import { CSVLink } from 'react-csv';
+import UpdateUser from './update.user';
 
 
 
@@ -19,6 +22,7 @@ type TSearch = {
 }
 
 const TableUser = () => {
+    const { message, notification } = App.useApp();
     const actionRef = useRef<ActionType>();
     const [meta, setMeta] = useState({
         current: 1,
@@ -32,6 +36,27 @@ const TableUser = () => {
 
     const [openCreateModal, setOpenCreateModal] = useState<boolean>(false);
 
+    const [openImportModal, setOpenImportModal] = useState<boolean>(false)
+    const [currentDataTable, setCurrentDataTable] = useState<IUserTable[]>([])
+
+    const [openModalUpdate, setOpenModalUpdate] = useState<boolean>(false)
+    const [dataUpdate, setDataUpdate] = useState<IUserTable | null>(null);
+    const [isDelete, setIsDelete] = useState<boolean>(false)
+
+    const handleDeleteUser = async (id: string) => {
+        setIsDelete(true)
+        const res = await deleteUserAPI(id);
+        if (res?.data) {
+            message.success(`Xóa user ${id} thành công`)
+            actionRef.current?.reload();
+        } else {
+            notification.error({
+                message: 'Đã có lỗi xảy ra',
+                description: res.message
+            })
+        }
+        setIsDelete(false)
+    }
 
 
     const columns: ProColumns<IUserTable>[] = [
@@ -44,7 +69,7 @@ const TableUser = () => {
             title: 'id',
             dataIndex: '_id',
             hideInSearch: true,
-            render: (dom, entity, index, action, schema) => (
+            render: (dom, entity) => (
                 <a href='#!' onClick={(e) => {
                     e.preventDefault();
                     setIsDetailView(true);
@@ -81,9 +106,28 @@ const TableUser = () => {
             title: "Action",
             valueType: "option",
             key: "option",
-            render: () => [
-                <a style={{ color: '#f57800' }}><EditOutlined /></a>,
-                <a style={{ color: '#ff4d4f' }}><DeleteOutlined /></a>
+            render: (dom, entity) => [
+                <a style={{ color: '#f57800' }}
+                    onClick={(e) => {
+                        e.preventDefault()
+                        setDataUpdate(entity)
+                        setOpenModalUpdate(true)
+                    }}
+                >
+                    <EditOutlined />
+                </a>,
+                <a style={{ color: '#ff4d4f' }}>
+                    <Popconfirm
+                        title="Delete user"
+                        description="Bạn có chắc muốn xóa user này?"
+                        onConfirm={() => handleDeleteUser(entity._id)}
+                        okText="Xác nhận"
+                        cancelText="Hủy"
+                        okButtonProps={{ loading: isDelete }}
+                    >
+                        <DeleteOutlined />
+                    </Popconfirm>
+                </a>
             ]
         },
 
@@ -130,6 +174,7 @@ const TableUser = () => {
                     const res = await getUserWithPaginateApi(query);
                     if (res?.data) {
                         setMeta(res.data.meta);
+                        setCurrentDataTable(res.data?.result ?? [])
                     }
                     return {
                         // data: data.data,
@@ -152,6 +197,30 @@ const TableUser = () => {
                 headerTitle="Table user"
                 toolBarRender={() => [
                     <Button
+                        key="export"
+                        icon={<ExportOutlined />}
+
+                        type="primary"
+                    >
+                        <CSVLink
+                            data={currentDataTable}
+                            filename='export-user.csv'
+                        >
+                            Export
+                        </CSVLink>
+                    </Button>,
+                    <Button
+                        key="import"
+                        icon={<CloudUploadOutlined />}
+                        onClick={() => {
+                            actionRef.current?.reload();
+                            setOpenImportModal(true)
+                        }}
+                        type="primary"
+                    >
+                        Import
+                    </Button>,
+                    <Button
                         key="button"
                         icon={<PlusOutlined />}
                         onClick={() => {
@@ -161,7 +230,8 @@ const TableUser = () => {
                         type="primary"
                     >
                         Add new
-                    </Button>
+                    </Button>,
+
 
                 ]}
             />
@@ -174,6 +244,18 @@ const TableUser = () => {
             <CreateUserModal
                 openCreateModal={openCreateModal}
                 setOpenCreateModal={setOpenCreateModal}
+                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
+            />
+            <ImportFileModal
+                openImportModal={openImportModal}
+                setOpenImportModal={setOpenImportModal}
+                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
+            />
+            <UpdateUser
+                openModalUpdate={openModalUpdate}
+                setOpenModalUpdate={setOpenModalUpdate}
+                dataUpdate={dataUpdate}
+                setDataUpdate={setDataUpdate}
                 reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
             />
         </>
