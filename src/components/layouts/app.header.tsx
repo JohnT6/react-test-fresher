@@ -2,27 +2,41 @@ import { useState } from 'react';
 import { FaReact } from 'react-icons/fa'
 import { FiShoppingCart } from 'react-icons/fi';
 import { VscSearchFuzzy } from 'react-icons/vsc';
-import { Divider, Badge, Drawer, Avatar, Popover } from 'antd';
+import { Divider, Badge, Drawer, Avatar, Popover, Empty } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { useNavigate } from 'react-router';
 import './app.header.scss';
 import { Link } from 'react-router-dom';
 import { useCurrentApp } from 'components/context/app.context';
 import { logOutAPI } from '@/services/api';
+import ManageAccount from '../client/account';
+import { isMobile } from 'react-device-detect';
 
-const AppHeader = (props: any) => {
+interface IProps {
+    searchTerm: string;
+    setSearchTerm: (v: string) => void;
+}
+
+const AppHeader = (props: IProps) => {
     const [openDrawer, setOpenDrawer] = useState(false);
+    const [openManageAccount, setOpenManageAccount] = useState<boolean>(false);
 
-    const { isAuthenticated, user, setUser, setIsAuthenticated } = useCurrentApp();
+    const {
+        isAuthenticated, user, setUser, setIsAuthenticated,
+        carts, setCarts
+    } = useCurrentApp();
 
     const navigate = useNavigate();
 
     const handleLogout = async () => {
+        //todo
         const res = await logOutAPI();
-        if (res?.data) {
-            setUser(null)
-            setIsAuthenticated(false)
-            localStorage.removeItem("access_token")
+        if (res.data) {
+            setUser(null);
+            setCarts([]);
+            setIsAuthenticated(false);
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("carts");
         }
     }
 
@@ -30,7 +44,7 @@ const AppHeader = (props: any) => {
         {
             label: <label
                 style={{ cursor: 'pointer' }}
-                onClick={() => alert("me")}
+                onClick={() => setOpenManageAccount(true)}
             >Quản lý tài khoản</label>,
             key: 'account',
         },
@@ -59,7 +73,7 @@ const AppHeader = (props: any) => {
     const contentPopover = () => {
         return (
             <div className='pop-cart-body'>
-                {/* <div className='pop-cart-content'>
+                <div className='pop-cart-content'>
                     {carts?.map((book, index) => {
                         return (
                             <div className='book' key={`book-${index}`}>
@@ -80,10 +94,11 @@ const AppHeader = (props: any) => {
                     <Empty
                         description="Không có sản phẩm trong giỏ hàng"
                     />
-                } */}
+                }
             </div>
         )
     }
+
     return (
         <>
             <div className='header-container'>
@@ -101,8 +116,8 @@ const AppHeader = (props: any) => {
                             <input
                                 className="input-search" type={'text'}
                                 placeholder="Bạn tìm gì hôm nay"
-                            // value={props.searchTerm}
-                            // onChange={(e) => props.setSearchTerm(e.target.value)}
+                                value={props.searchTerm}
+                                onChange={(e) => props.setSearchTerm(e.target.value)}
                             />
                         </div>
 
@@ -110,22 +125,33 @@ const AppHeader = (props: any) => {
                     <nav className="page-header__bottom">
                         <ul id="navigation" className="navigation">
                             <li className="navigation__item">
-                                <Popover
-                                    className="popover-carts"
-                                    placement="topRight"
-                                    rootClassName="popover-carts"
-                                    title={"Sản phẩm mới thêm"}
-                                    content={contentPopover}
-                                    arrow={true}>
+                                {!isMobile
+                                    ?
+                                    <Popover
+                                        className="popover-carts"
+                                        placement="topRight"
+                                        rootClassName="popover-carts"
+                                        title={"Sản phẩm mới thêm"}
+                                        content={contentPopover}
+                                        arrow={true}>
+                                        <Badge
+                                            count={carts?.length ?? 0}
+                                            size={"small"}
+                                            showZero
+                                        >
+                                            <FiShoppingCart className='icon-cart' />
+                                        </Badge>
+                                    </Popover>
+                                    :
                                     <Badge
-                                        // count={carts?.length ?? 0}
-                                        count={10}
+                                        count={carts?.length ?? 0}
                                         size={"small"}
                                         showZero
+                                        onClick={() => navigate("/order")}
                                     >
                                         <FiShoppingCart className='icon-cart' />
                                     </Badge>
-                                </Popover>
+                                }
                             </li>
                             <li className="navigation__item mobile"><Divider type='vertical' /></li>
                             <li className="navigation__item mobile">
@@ -156,6 +182,11 @@ const AppHeader = (props: any) => {
                 <p onClick={() => handleLogout()}>Đăng xuất</p>
                 <Divider />
             </Drawer>
+
+            <ManageAccount
+                isModalOpen={openManageAccount}
+                setIsModalOpen={setOpenManageAccount}
+            />
 
         </>
     )

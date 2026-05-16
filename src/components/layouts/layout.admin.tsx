@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     AppstoreOutlined,
     ExceptionOutlined,
@@ -10,7 +10,7 @@ import {
     MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, Dropdown, Space, Avatar, Result, Button } from 'antd';
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import { useCurrentApp } from '../context/app.context';
 import type { MenuProps } from 'antd';
@@ -25,6 +25,7 @@ const LayoutAdmin = () => {
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const { user, setUser, setIsAuthenticated, isAuthenticated } = useCurrentApp();
 
+    const location = useLocation();
 
     const handleLogout = async () => {
         const res = await logOutAPI();
@@ -70,6 +71,11 @@ const LayoutAdmin = () => {
         },
 
     ];
+
+    useEffect(() => {
+        const active: any = items.find(item => location.pathname === (item?.key as any)) ?? "/admin";
+        setActiveMenu(active.key)
+    }, [location])
 
     const itemsDropdown = [
         {
@@ -133,7 +139,8 @@ const LayoutAdmin = () => {
                         Admin
                     </div>
                     <Menu
-                        defaultSelectedKeys={[activeMenu]}
+                        // defaultSelectedKeys={[activeMenu]}
+                        selectedKeys={[activeMenu]}
                         mode="inline"
                         items={items}
                         onClick={(e) => setActiveMenu(e.key)}

@@ -1,27 +1,27 @@
-import { CloudUploadOutlined, DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import { App, Button, Popconfirm } from 'antd';
 import { useRef, useState } from 'react';
-import { deleteUserAPI, getUserWithPaginateApi } from '@/services/api';
-import { dateRangeValidate } from '@/services/helper';
-import ViewDetailUser from './view.detail.user';
-import CreateUserModal from './create.user';
-import ImportFileModal from './import.modal';
+import { deleteBookAPI, getListBookWithPaginateApi } from '@/services/api';
+// import { dateRangeValidate } from '@/services/helper';
 import { CSVLink } from 'react-csv';
-import UpdateUser from './update.user';
+import dayjs from 'dayjs';
+import ViewDetailBook from './view.detail.book';
+import CreateBook from './create.book';
+import UpdateBook from './update.book';
+
 
 
 
 
 type TSearch = {
-    fullName: string;
-    email: string;
-    createdAt: string;
-    createdAtRange: string;
+    mainText: string;
+    author: string;
+    updatedAt: string;
 }
 
-const TableUser = () => {
+const TableBook = () => {
     const { message, notification } = App.useApp();
     const actionRef = useRef<ActionType>();
     const [meta, setMeta] = useState({
@@ -32,20 +32,19 @@ const TableUser = () => {
     })
 
     const [isViewDetail, setIsDetailView] = useState<boolean>(false);
-    const [isDataDetail, setDataDetail] = useState<IUserTable | null>(null);
+    const [isDataDetail, setDataDetail] = useState<IBookTable | null>(null);
 
-    const [openCreateModal, setOpenCreateModal] = useState<boolean>(false);
+    const [openModalCreate, setOpenModalCreate] = useState<boolean>(false);
 
-    const [openImportModal, setOpenImportModal] = useState<boolean>(false)
-    const [currentDataTable, setCurrentDataTable] = useState<IUserTable[]>([])
+    const [currentDataTable, setCurrentDataTable] = useState<IBookTable[]>([])
 
     const [openModalUpdate, setOpenModalUpdate] = useState<boolean>(false)
-    const [dataUpdate, setDataUpdate] = useState<IUserTable | null>(null);
+    const [dataUpdate, setDataUpdate] = useState<IBookTable | null>(null);
     const [isDelete, setIsDelete] = useState<boolean>(false)
 
     const handleDeleteUser = async (id: string) => {
         setIsDelete(true)
-        const res = await deleteUserAPI(id);
+        const res = await deleteBookAPI(id);
         if (res?.data) {
             message.success(`Xóa user ${id} thành công`)
             actionRef.current?.reload();
@@ -59,7 +58,7 @@ const TableUser = () => {
     }
 
 
-    const columns: ProColumns<IUserTable>[] = [
+    const columns: ProColumns<IBookTable>[] = [
         {
             dataIndex: 'index',
             valueType: 'indexBorder',
@@ -79,28 +78,50 @@ const TableUser = () => {
             )
         },
         {
-            title: 'Full Name',
-            dataIndex: 'fullName',
+            title: 'Tên sách',
+            dataIndex: 'mainText',
+            sorter: true,
         },
         {
-            title: 'Email',
-            dataIndex: 'email',
-            copyable: true,
+            title: 'Thể loại',
+            dataIndex: 'category',
+            sorter: true,
+            hideInSearch: true
 
         },
         {
-            title: 'Created At',
-            dataIndex: 'createdAt',
-            valueType: "date",
+            title: 'Tác giả',
+            dataIndex: 'author',
             sorter: true,
-            hideInSearch: true
+
         },
         {
-            title: 'Created At',
-            dataIndex: 'createdAtRange',
-            valueType: "dateRange",
-            defaultSortOrder: 'descend',
-            hideInTable: true
+            title: 'Giá tiền',
+            dataIndex: 'price',
+            sorter: true,
+            hideInSearch: true,
+            render: (dom, entity) => {
+                // Sử dụng hàm Intl.NumberFormat của JavaScript để format chuẩn tiền Việt
+                return new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                }).format(entity.price);
+            }
+
+        },
+        {
+            title: 'Ngày cập nhật',
+            dataIndex: 'updatedAt',
+            valueType: "date",
+            sorter: true,
+            hideInSearch: true,
+            render(dom, entity) {
+                return (
+                    <>
+                        {dayjs(entity.updatedAt).format("DD-MM-YYYY")}
+                    </>
+                )
+            },
         },
         {
             title: "Action",
@@ -118,8 +139,8 @@ const TableUser = () => {
                 </a>,
                 <a style={{ color: '#ff4d4f' }}>
                     <Popconfirm
-                        title="Delete user"
-                        description="Bạn có chắc muốn xóa user này?"
+                        title="Delete book"
+                        description="Bạn có chắc muốn xóa sách này này?"
                         onConfirm={() => handleDeleteUser(entity._id)}
                         okText="Xác nhận"
                         cancelText="Hủy"
@@ -133,9 +154,13 @@ const TableUser = () => {
 
     ];
 
+    const refreshTable = () => {
+        actionRef.current?.reload();
+    }
+
     return (
         <>
-            <ProTable<IUserTable, TSearch>
+            <ProTable<IBookTable, TSearch>
                 columns={columns}
                 actionRef={actionRef}
                 cardBordered
@@ -146,11 +171,11 @@ const TableUser = () => {
                     let query = ""
                     if (params) {
                         query += `current=${params.current}&pageSize=${params.pageSize}`
-                        if (params.email) {
-                            query += `&email=/${params.email}/i`
+                        if (params.author) {
+                            query += `&author=/${params.author}/i`
                         }
-                        if (params.fullName) {
-                            query += `&fullName=/${params.fullName}/i`
+                        if (params.mainText) {
+                            query += `&mainText=/${params.mainText}/i`
                         }
 
                         // if (sort.createdAt === "descend") {
@@ -160,18 +185,34 @@ const TableUser = () => {
                         //     query += `&sort=createdAt`
                         // }
 
-                        if (sort && sort.createdAt) {
-                            query += `&sort=${sort.createdAt === "ascend" ? "createdAt" : "-createdAt"}`
+                        if (sort && sort.updatedAt) {
+                            query += `&sort=${sort.updatedAt === "ascend" ? "updatedAt" : "-updatedAt"}`
                         } else {
-                            query += "&sort=-createdAt"
+                            query += "&sort=-updatedAt"
                         }
 
-                        const createdDateRange = dateRangeValidate(params.createdAtRange);
-                        if (createdDateRange) {
-                            query += `&createdAt>=${createdDateRange[0]}&createdAt<=${createdDateRange[1]}`
+                        if (sort && sort.author) {
+                            query += `&sort=${sort.author === "ascend" ? "author" : "-author"}`
                         }
+
+                        if (sort && sort.mainText) {
+                            query += `&sort=${sort.mainText === "ascend" ? "mainText" : "-mainText"}`
+                        }
+
+                        if (sort && sort.category) {
+                            query += `&sort=${sort.category === "ascend" ? "category" : "-category"}`
+                        }
+
+                        if (sort && sort.price) {
+                            query += `&sort=${sort.price === "ascend" ? "price" : "-price"}`
+                        }
+
+                        // const createdDateRange = dateRangeValidate(params.createdAtRange);
+                        // if (createdDateRange) {
+                        //     query += `&createdAt>=${createdDateRange[0]}&createdAt<=${createdDateRange[1]}`
+                        // }
                     }
-                    const res = await getUserWithPaginateApi(query);
+                    const res = await getListBookWithPaginateApi(query);
                     if (res?.data) {
                         setMeta(res.data.meta);
                         setCurrentDataTable(res.data?.result ?? [])
@@ -194,7 +235,7 @@ const TableUser = () => {
                     showSizeChanger: true,
                     showTotal: (total, range) => { return (<div>{range[0]}-{range[1]} of {total} items</div>) }
                 }}
-                headerTitle="Table user"
+                headerTitle="Table book"
                 toolBarRender={() => [
 
                     <CSVLink
@@ -209,24 +250,14 @@ const TableUser = () => {
                         >
                             Export
                         </Button>
-                    </CSVLink>,
-                    <Button
-                        key="import"
-                        icon={<CloudUploadOutlined />}
-                        onClick={() => {
-                            actionRef.current?.reload();
-                            setOpenImportModal(true)
-                        }}
-                        type="primary"
-                    >
-                        Import
-                    </Button>,
+                    </CSVLink>
+                    ,
                     <Button
                         key="button"
                         icon={<PlusOutlined />}
                         onClick={() => {
                             actionRef.current?.reload();
-                            setOpenCreateModal(true)
+                            setOpenModalCreate(true)
                         }}
                         type="primary"
                     >
@@ -236,31 +267,26 @@ const TableUser = () => {
 
                 ]}
             />
-            <ViewDetailUser
+            <ViewDetailBook
                 isViewDetail={isViewDetail}
                 setIsDetailView={setIsDetailView}
                 isDataDetail={isDataDetail}
                 setDataDetail={setDataDetail}
             />
-            <CreateUserModal
-                openCreateModal={openCreateModal}
-                setOpenCreateModal={setOpenCreateModal}
-                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
+            <CreateBook
+                openModalCreate={openModalCreate}
+                setOpenModalCreate={setOpenModalCreate}
+                refreshTable={refreshTable}
             />
-            <ImportFileModal
-                openImportModal={openImportModal}
-                setOpenImportModal={setOpenImportModal}
-                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
-            />
-            <UpdateUser
+            <UpdateBook
                 openModalUpdate={openModalUpdate}
                 setOpenModalUpdate={setOpenModalUpdate}
+                refreshTable={refreshTable}
                 dataUpdate={dataUpdate}
                 setDataUpdate={setDataUpdate}
-                reloadTable={() => { actionRef.current?.reloadAndRest?.() }}
             />
         </>
     );
 };
 
-export default TableUser;
+export default TableBook;

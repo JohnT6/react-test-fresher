@@ -67,4 +67,48 @@ declare global {
         countError: number,
         detail: any,
     }
+
+    interface IBookTable {
+        _id: string,
+        thumbnail: string,
+        slider: string[],
+        mainText: string,
+        author: string,
+        price: number,
+        sold: number,
+        quantity: number,
+        category: string,
+        createdAt: Date,
+        updatedAt: Date,
+    }
+
+    interface ICart {
+        _id: string;
+        quantity: number;
+        detail: IBookTable;
+    }
+
+    interface IHistory {
+        _id: string;
+        name: string;
+        type: string;
+        email: string;
+        phone: string;
+        userId: string;
+        detail:
+        {
+            bookName: string;
+            quantity: number;
+            _id: string;
+        }[];
+        totalPrice: number;
+        createdAt: Date;
+        updatedAt: Date;
+        paymentStatus: string;
+        paymentRef: string;
+    }
+
+    interface IOrderTable extends IHistory {
+
+    }
 }
